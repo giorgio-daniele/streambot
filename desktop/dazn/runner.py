@@ -1,4 +1,5 @@
 import subprocess
+import time
 
 # List of bandwidth rates in Kbps
 bandwidth_rates = [1500, 3000, 4500, 6000, 7500, 50000]
@@ -37,7 +38,9 @@ for rate in bandwidth_rates:
     stdout, stderr = run_command(command, password)
     print(f"Setting new config for rate {rate}: {stdout}, {stderr}")
 
-    # TODO: Add Streambot invocation here if needed
+    # Wait for 10 minutes before the next rate
+    print(f"Waiting for 10 minutes before setting the next rate...")
+    time.sleep(600)  # Sleep for 600 seconds (10 minutes)
 
 # Remove any previous configuration before exiting
 command = [wondershaper, "-ca", interface]
