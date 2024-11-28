@@ -1,7 +1,6 @@
 {
   "repetitions": 50,
-  "fastAwait":   5,
-  "longAwait":   10,
+  "quantum":     5,
 
   "homepage": "https://www.dazn.com/it-IT/home",
   "channels": [

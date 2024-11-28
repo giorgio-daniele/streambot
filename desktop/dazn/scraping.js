@@ -138,9 +138,8 @@ class BrowserManager {
 class Experiment {
     constructor() {
         this.outputDir  = Utils.makeOutputDir();
-        this.fastAwait  = config.fastAwait * 1000;
-        this.longAwait  = config.longAwait * 1000;
-        this.watchAwait = config.longAwait * 1000 * 30;
+        this.fastAwait  = (config.quantum * 1000);
+        this.watchAwait = (config.quantum * 1000) * 60; // 300 seconds, since quantum is 5 seconds
     }
 
     async run() {
@@ -176,7 +175,7 @@ class Experiment {
 
                 const harLogger = await browserManager.startHarLogging(logHarFile);
                 await browserManager.page.goto(config.homepage);
-                await Utils.awaiting(this.longAwait);
+                await Utils.awaiting(this.fastAwait);
 
                 for (const channel of channels) {
                     await browserManager.page.goto(channel.link);
@@ -197,10 +196,11 @@ class Experiment {
                 const browserStopTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-off ${browserStopTime} ${browserStopTime - originTime}\n`);
 
-                await Utils.awaiting(this.longAwait * 2);
+                await Utils.awaiting(this.fastAwait * 3);
                 sniffer.stop();
                 const snifferStopTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `sniffer-off ${snifferStopTime} ${snifferStopTime - originTime}\n`);
+
             } catch (error) {
                 console.error(`Error during experiment ${number + 1}:`, error.message);
 
