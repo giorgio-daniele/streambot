@@ -1,19 +1,12 @@
 import subprocess
 import time
 
-# List of bandwidth rates in Kbps
-bandwidth_rates = [1500, 3000, 4500, 6000, 7500, 50000]
+bandwidth_rates  = [1500, 3000, 4500, 6000, 7500, 50000]
+wondershaper     = "wondershaper/wondershaper"
+password         = "user"
+interface        = "enp1s0"
 
-# Define the path to wondershaper
-wondershaper = "wondershaper/wondershaper"
-
-# Insert the password here for enabling wondershaper
-password = "user"
-
-# Define the network interface
-interface = "enp1s0"
-
-def run_command(command, password):
+def run_command(command: list[str], password: str):
     process = subprocess.Popen(
         command, 
         stdin=subprocess.PIPE, 
@@ -21,28 +14,28 @@ def run_command(command, password):
         stderr=subprocess.PIPE, 
         text=True
     )
-    # Send password to stdin and return stdout, stderr
     stdout, stderr = process.communicate(input=f"{password}\n")
     return stdout, stderr
 
-# Loop through each bandwidth rate
+def run_node_script(source_file: str):
+    command = ["node", source_file]
+    stdout, stderr = run_command(command, password)
+    print(f"Running Node.js script {source_file}: {stdout}, {stderr}")
+
 for rate in bandwidth_rates:
-    
-    # Invoke wondershaper to remove any previous configuration
     command = [wondershaper, "-c", "-a", interface]
     stdout, stderr = run_command(command, password)
     print(f"Config removal for rate {rate}: {stdout}, {stderr}")
 
-    # Invoke wondershaper to set new bandwidth configuration
     command = [wondershaper, "-a", interface, "-u", str(rate), "-d", str(rate)]
     stdout, stderr = run_command(command, password)
     print(f"Setting new config for rate {rate}: {stdout}, {stderr}")
 
-    # Wait for 10 minutes before the next rate
-    print(f"Waiting for 10 minutes before setting the next rate...")
-    time.sleep(600)  # Sleep for 600 seconds (10 minutes)
+    run_node_script("source.js")
 
-# Remove any previous configuration before exiting
+    print(f"Waiting for 5 seconds before setting the next rate...")
+    time.sleep(5)
+
 command = [wondershaper, "-ca", interface]
 stdout, stderr = run_command(command, password)
 print(f"Final config removal: {stdout}, {stderr}")
