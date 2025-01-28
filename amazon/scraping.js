@@ -59,18 +59,20 @@ class Sniffer {
 
     start() {
         const { bin, net, max } = config.sniffer;
-        const cmd               = [bin, "-i", net, "-s", max, "-w", this.outputPath];
-        this.snifferProcess     = spawn(cmd[0], cmd.slice(1));
-
-        const currentTime       = Utils.currentTime();
-
+        const cmd = [bin, "-i", net, "-s", max, "-w", this.outputPath];
+        this.snifferProcess = spawn(cmd[0], cmd.slice(1));
+    
+        const currentTime = Utils.currentTime();
+    
         this.snifferProcess.on("error", error => {
             console.error(`[${currentTime}] Error starting tshark process: ${error.message}`);
+            console.error(`[${currentTime}] Error stack: ${error.stack}`);
+            console.error(`[${currentTime}] Error code: ${error.code}`);
         });
-
+    
         this.snifferProcess.on("exit", code => {
             const exitTime = Utils.currentTime();
-
+    
             if (code === 0) {
                 console.log(`[${exitTime}] Tshark process exited successfully.`);
             } else {
@@ -139,7 +141,7 @@ class Experiment {
     constructor() {
         this.outputDir  = Utils.makeOutputDir();
         this.fastAwait  = (config.quantum * 1000);
-        this.watchAwait = (config.quantum * 1000) * 60; // 300 seconds, since quantum is 5 seconds
+        this.watchAwait = (config.quantum * 1000) * 60;
     }
 
     async run() {
@@ -178,15 +180,37 @@ class Experiment {
                 await Utils.awaiting(this.fastAwait);
 
                 for (const channel of channels) {
-                    await browserManager.page.goto(channel.link);
+                    
+                    /* Select which kind of action start the playback */
+                    if (channel["type"] == "url") {
+                        await browserManager.page.goto(channel.link);
+                    } else if (channel["type"] == "button") {
+                        const buttonSelector = channel["selector"];
+                    
+                        await browserManager.page.evaluate(() => {
+                            window.scrollBy(0, 300);
+                        });
+                    
+                        await browserManager.page.waitForSelector(buttonSelector, { visible: true });
+                    
+                        const button = await browserManager.page.$(buttonSelector);
+                    
+                        if (button) {
+                            await button.scrollIntoViewIfNeeded();
+                            await button.click();
+                        } else {
+                            console.error("Button not found using the selector.");
+                        }
+                    }
+                    
+                    /* Playback */
                     const channelStartTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-on ${channelStartTime} ${channelStartTime - originTime}\n`);
-
                     await Utils.awaiting(this.watchAwait);
-
                     const channelStopTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-off ${channelStopTime} ${channelStopTime - originTime}\n`);
-
+                    /* End of the playback */
+                
                     await browserManager.page.goto(config.homepage);
                     await Utils.awaiting(this.fastAwait);
                 }
