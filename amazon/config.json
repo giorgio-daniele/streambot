@@ -1,0 +1,18 @@
+{
+  "repetitions": 20,
+  "quantum":     5,
+
+  "homepage": "https://www.primevideo.com/region/eu/livetv",
+  "channels": [
+  ],
+  "sniffer": {
+    "bin": "/usr/bin/tshark",
+    "net": "wlp1s0",
+    "max": "320"
+  },
+  "login": {
+    "url":      "https://www.primevideo.com/auth-redirect",
+    "username": "giorgiodaniele15@yahoo.com",
+    "password": ""
+  }
+}

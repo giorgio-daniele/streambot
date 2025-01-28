@@ -1,0 +1,28 @@
+{
+  "repetitions": 20,
+  "quantum":     5,
+
+  "homepage": "https://www.dazn.com/it-IT/home",
+  "channels": [
+    {
+      "link": "https://www.dazn.com/it-IT/home/41qomr2230fmoabe9h4jy61z8",
+      "name": "radio-tv-serie-a",
+      "protected": false
+    },
+    {
+      "link": "https://www.dazn.com/it-IT/home/3okj5lq01okqn39tcv15wd0hi",
+      "name": "pga-tour",
+      "protected": false
+    }
+  ],
+  "sniffer": {
+    "bin": "/usr/bin/tshark",
+    "net": "enp1s0",
+    "max": "320"
+  },
+  "login": {
+    "url": "https://www.dazn.com/it-IT/signin",
+    "username": "giorgiodaniele15@gmail.com",
+    "password": ""
+  }
+}
