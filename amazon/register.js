@@ -42,7 +42,7 @@ const registerUser = async () => {
     await wait(5);
 
     /* You should logged in */
-    await wait(10);
+    await wait(50);
 
     /* Close the browser */
     await browser.close();

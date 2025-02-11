@@ -1,28 +1,21 @@
 {
-  "repetitions": 20,
-  "quantum":     5,
-
+  "repetitions": 1,
+  "enableRebufferingTracing": 0,
   "homepage": "https://www.dazn.com/it-IT/home",
   "channels": [
     {
-      "link": "https://www.dazn.com/it-IT/home/41qomr2230fmoabe9h4jy61z8",
-      "name": "radio-tv-serie-a",
-      "protected": false
-    },
-    {
-      "link": "https://www.dazn.com/it-IT/home/3okj5lq01okqn39tcv15wd0hi",
-      "name": "pga-tour",
-      "protected": false
+      "link": "https://www.dazn.com/it-IT/competition/Competition:1r097lpxe0xn03ihb7wi98kao/f0fxplpta8y6r0j482bg311u1/1daica1elq2701s7zajjchy47s",
+      "name": "radio-tv-serie-a"
     }
   ],
   "sniffer": {
     "bin": "/usr/bin/tshark",
     "net": "enp1s0",
-    "max": "320"
+    "max": "500"
   },
   "login": {
     "url": "https://www.dazn.com/it-IT/signin",
-    "username": "giorgiodaniele15@gmail.com",
+    "username": "",
     "password": ""
   }
 }
