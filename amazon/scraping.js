@@ -1,9 +1,12 @@
+/* Modules required for processing */
 const puppeteer     = require("puppeteer");
 const path          = require("path");
 const fs            = require("fs");
 const puppeteerHar  = require("puppeteer-har");
-const config        = require("./config.json");
+const yaml          = require('js-yaml');
 const { spawn }     = require("child_process");
+
+
 
 
 class Utils {
@@ -192,30 +195,46 @@ class BrowserManager {
     }
 }
 
-const SECOND = 1000;
-const MINUTE = SECOND * 60;
 
 class Experiment {
     constructor() {
         this.outputDir  = Utils.makeOutputDir();
-        this.fastAwait  = 5   * SECOND;       // 5 seconds
-        this.watchAwait = 12  * MINUTE;       // 12 minutes
     }
 
     async run() {
-        const repetitions = config.repetitions;
-        const channels    = config.channels;
+
+        // Define variable for runtime
+        let config;
+        let sniffer;
+        let browserManager;
+        let repetitions;
+        let channels;
+
+        // Define
+        let logNetFile;
+        let logBotFile;
+        let logHarFile;
+        let logRebFile;
+
+        try {
+            // Read the YAML file
+            const file = fs.readFileSync('config.yaml', 'utf8');
+        
+            // Parse YAML to JavaScript object
+            config = yaml.load(file);
+
+        } catch (error) {
+            console.error(`Error loading config.yaml experiment:`, error.message);
+        }
+
+        // Get the number of repetitions
+        // and the list of all channels
+        repetitions = config.repetitions;
+        channels    = config.channels;
 
         for (let number = 0; number < repetitions; number++) {
             const currentTime = Utils.currentTime();
             console.log(`[${currentTime}] Running experiment ${number + 1}`);
-
-            let logNetFile;
-            let logBotFile;
-            let logHarFile;
-            let logRebFile;
-            let sniffer;
-            let browserManager;
 
             try {
 
@@ -250,12 +269,12 @@ class Experiment {
                 await browserManager.launch();
                 const browserStartTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-on ${browserStartTime} ${browserStartTime - originTime}\n`);
-                await Utils.awaiting(this.fastAwait);
+                await Utils.awaiting(config.load);
                 
                 // Start the HTTP tracing
                 const harLogger = await browserManager.startHarLogging(logHarFile);
                 await browserManager.page.goto(config.homepage);
-                await Utils.awaiting(this.fastAwait);
+                await Utils.awaiting(config.load);
 
                 for (const channel of channels) {
                     // Reach the homepage
@@ -270,7 +289,9 @@ class Experiment {
                     // Playback
                     const channelStartTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-on ${channelStartTime} ${channelStartTime - originTime}\n`);
-                    await Utils.awaiting(this.watchAwait);
+
+                    await Utils.awaiting(config.play);
+
                     const channelStopTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-off ${channelStopTime} ${channelStopTime - originTime}\n`);
                     
@@ -281,7 +302,7 @@ class Experiment {
                 
                     // Exit the current channel and get the next
                     await browserManager.page.goto(config.homepage);
-                    await Utils.awaiting(this.fastAwait);
+                    await Utils.awaiting(config.load);
                 }
                 
                 // Stop the HTTP tracing
@@ -291,7 +312,7 @@ class Experiment {
                 const browserStopTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-off ${browserStopTime} ${browserStopTime - originTime}\n`);
 
-                await Utils.awaiting(this.fastAwait * 3);
+                await Utils.awaiting(config.load * 3);
                 // Stop the sniffer
                 sniffer.stop();
                 const snifferStopTime = Utils.currentUnix();

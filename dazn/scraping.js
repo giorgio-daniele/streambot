@@ -1,10 +1,10 @@
+/* Modules required for processing */
 const puppeteer     = require("puppeteer");
 const path          = require("path");
 const fs            = require("fs");
 const puppeteerHar  = require("puppeteer-har");
-const config        = require("./config.json");
+const yaml          = require('js-yaml');
 const { spawn }     = require("child_process");
-
 
 class Utils {
     static currentTime() {
@@ -55,26 +55,29 @@ class Utils {
 class Sniffer {
 
     // Constructor
-    constructor(outputPath) {
-        this.outputPath     = outputPath;
-        this.snifferProcess = null;
+    constructor(out, bin, net, max) {
+        this.out = out;
+        this.pid = null;
+        this.bin = bin;
+        this.net = net;
+        this.max = max;
     }
 
-    // Function to start
     start() {
-        const { bin, net, max } = config.sniffer;
-        const cmd = [bin, "-i", net, "-s", max, "-w", this.outputPath];
-        this.snifferProcess = spawn(cmd[0], cmd.slice(1));
+
+        // Generate the command and spawn the process
+        const cmd = [this.bin, "-i", this.net, "-s", this.max, "-w", this.out];
+        this.pid  = spawn(cmd[0], cmd.slice(1));
     
         const currentTime = Utils.currentTime();
     
-        this.snifferProcess.on("error", error => {
+        this.pid.on("error", error => {
             console.error(`[${currentTime}] Error starting tshark process: ${error.message}`);
             console.error(`[${currentTime}] Error stack: ${error.stack}`);
             console.error(`[${currentTime}] Error code: ${error.code}`);
         });
     
-        this.snifferProcess.on("exit", code => {
+        this.pid.on("exit", code => {
             const exitTime = Utils.currentTime();
     
             if (code === 0) {
@@ -85,14 +88,16 @@ class Sniffer {
         });
     }
 
-    // Function to stop
-    stop(signal = "SIGTERM") {
-        if (this.snifferProcess && !this.snifferProcess.killed) {
-            const currentTime = Utils.currentTime();
-            console.log(`[${currentTime}] Stopping tshark process with PID: ${this.snifferProcess.pid}`);
-            this.snifferProcess.kill(signal);
 
-            this.snifferProcess.on("exit", (code, signal) => {
+    stop(signal = "SIGTERM") {
+
+        // Check if the process is still active
+        if (this.pid && !this.pid.killed) {
+            const currentTime = Utils.currentTime();
+            console.log(`[${currentTime}] Stopping tshark process with PID: ${this.pid.pid}`);
+            this.pid.kill(signal);
+
+            this.pid.on("exit", (code, signal) => {
                 const exitTime = Utils.currentTime();
 
                 if (signal) {
@@ -192,30 +197,46 @@ class BrowserManager {
     }
 }
 
-const SECOND = 1000;
-const MINUTE = SECOND * 60;
 
 class Experiment {
     constructor() {
         this.outputDir  = Utils.makeOutputDir();
-        this.fastAwait  = 5   * SECOND;       // 5 seconds
-        this.watchAwait = 12  * MINUTE;       // 12 minutes
     }
 
     async run() {
-        const repetitions = config.repetitions;
-        const channels    = config.channels;
+
+        // Define variable for runtime
+        let config;
+        let sniffer;
+        let browserManager;
+        let repetitions;
+        let channels;
+
+        // Define
+        let logNetFile;
+        let logBotFile;
+        let logHarFile;
+        let logRebFile;
+
+        try {
+            // Read the YAML file
+            const file = fs.readFileSync('config.yaml', 'utf8');
+        
+            // Parse YAML to JavaScript object
+            config = yaml.load(file);
+
+        } catch (error) {
+            console.error(`Error loading config.yaml experiment:`, error.message);
+        }
+
+        // Get the number of repetitions
+        // and the list of all channels
+        repetitions = config.repetitions;
+        channels    = config.channels;
 
         for (let number = 0; number < repetitions; number++) {
             const currentTime = Utils.currentTime();
             console.log(`[${currentTime}] Running experiment ${number + 1}`);
-
-            let logNetFile;
-            let logBotFile;
-            let logHarFile;
-            let logRebFile;
-            let sniffer;
-            let browserManager;
 
             try {
 
@@ -240,7 +261,7 @@ class Experiment {
                 fs.appendFileSync(logBotFile, `origin ${originTime} ${0}\n`);
                 
                 // Start the sniffer
-                sniffer = new Sniffer(logNetFile);
+                sniffer = new Sniffer(logNetFile, config.bin, config.net, config.max);
                 sniffer.start();
                 const snifferStartTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `sniffer-on ${snifferStartTime} ${snifferStartTime - originTime}\n`);
@@ -250,12 +271,12 @@ class Experiment {
                 await browserManager.launch();
                 const browserStartTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-on ${browserStartTime} ${browserStartTime - originTime}\n`);
-                await Utils.awaiting(this.fastAwait);
+                await Utils.awaiting(config.load);
                 
                 // Start the HTTP tracing
                 const harLogger = await browserManager.startHarLogging(logHarFile);
                 await browserManager.page.goto(config.homepage);
-                await Utils.awaiting(this.fastAwait);
+                await Utils.awaiting(config.load);
 
                 for (const channel of channels) {
                     // Reach the homepage
@@ -270,7 +291,9 @@ class Experiment {
                     // Playback
                     const channelStartTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-on ${channelStartTime} ${channelStartTime - originTime}\n`);
-                    await Utils.awaiting(this.watchAwait);
+
+                    await Utils.awaiting(config.play);
+
                     const channelStopTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-off ${channelStopTime} ${channelStopTime - originTime}\n`);
                     
@@ -281,7 +304,7 @@ class Experiment {
                 
                     // Exit the current channel and get the next
                     await browserManager.page.goto(config.homepage);
-                    await Utils.awaiting(this.fastAwait);
+                    await Utils.awaiting(config.load);
                 }
                 
                 // Stop the HTTP tracing
@@ -291,7 +314,7 @@ class Experiment {
                 const browserStopTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-off ${browserStopTime} ${browserStopTime - originTime}\n`);
 
-                await Utils.awaiting(this.fastAwait * 3);
+                await Utils.awaiting(config.load * 3);
                 // Stop the sniffer
                 sniffer.stop();
                 const snifferStopTime = Utils.currentUnix();

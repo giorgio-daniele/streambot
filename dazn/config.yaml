@@ -1,0 +1,31 @@
+# Configure how many times the channels list is reproduced
+repetitions: 1
+
+# Enable rebuffering logging (default is 0)
+enableRebufferingTracing: 0
+
+# Configuration for timings
+timings:
+  load: 5000  # milliseconds (5 seconds)
+  play: 72000 # milliseconds (12 minutes)
+
+# URL of the Content Provider
+homepage: "https://www.dazn.com/it-IT/home"
+
+# Channels
+channels:
+  - type:      "url"
+    link:      "https://www.dazn.com/it-IT/competition/Competition:1r097lpxe0xn03ihb7wi98kao/f0fxplpta8y6r0j482bg311u1/1daica1elq2701s7zajjchy47s"
+    name:      "radio-tv-serie-a"
+
+# Configuration for the sniffer
+sniffer:
+  bin: "/usr/bin/tshark"
+  net: "enp1s0"
+  max: "500"
+
+# Configuration for sign-up
+login:
+  url: "https://www.dazn.com/it-IT/signin"
+  username: ""
+  password: ""
