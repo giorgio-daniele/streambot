@@ -70,7 +70,7 @@ class Sniffer {
         this.pid  = spawn(cmd[0], cmd.slice(1));
     
         const currentTime = Utils.currentTime();
-    
+
         this.pid.on("error", error => {
             console.error(`[${currentTime}] Error starting tshark process: ${error.message}`);
             console.error(`[${currentTime}] Error stack: ${error.stack}`);
@@ -242,6 +242,7 @@ class Experiment {
 
                 // File for logging events
                 logBotFile = path.join(this.outputDir, `log_bot_complete-${number + 1}.csv`);   
+
                 
                 // File for logging packets
                 logNetFile = path.join(this.outputDir, `log_net_complete-${number + 1}.pcap`);
@@ -260,8 +261,9 @@ class Experiment {
                 const originTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `origin ${originTime} ${0}\n`);
                 
+
                 // Start the sniffer
-                sniffer = new Sniffer(logNetFile, config.bin, config.net, config.max);
+                sniffer = new Sniffer(logNetFile, config.sniffer.bin, config.sniffer.net, config.sniffer.max);
                 sniffer.start();
                 const snifferStartTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `sniffer-on ${snifferStartTime} ${snifferStartTime - originTime}\n`);

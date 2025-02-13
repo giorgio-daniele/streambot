@@ -6,9 +6,6 @@ const puppeteerHar  = require("puppeteer-har");
 const yaml          = require('js-yaml');
 const { spawn }     = require("child_process");
 
-
-
-
 class Utils {
     static currentTime() {
         return new Date().toDateString();
@@ -58,26 +55,29 @@ class Utils {
 class Sniffer {
 
     // Constructor
-    constructor(outputPath) {
-        this.outputPath     = outputPath;
-        this.snifferProcess = null;
+    constructor(out, bin, net, max) {
+        this.out = out;
+        this.pid = null;
+        this.bin = bin;
+        this.net = net;
+        this.max = max;
     }
 
-    // Function to start
     start() {
-        const { bin, net, max } = config.sniffer;
-        const cmd = [bin, "-i", net, "-s", max, "-w", this.outputPath];
-        this.snifferProcess = spawn(cmd[0], cmd.slice(1));
+
+        // Generate the command and spawn the process
+        const cmd = [this.bin, "-i", this.net, "-s", this.max, "-w", this.out];
+        this.pid  = spawn(cmd[0], cmd.slice(1));
     
         const currentTime = Utils.currentTime();
-    
-        this.snifferProcess.on("error", error => {
+
+        this.pid.on("error", error => {
             console.error(`[${currentTime}] Error starting tshark process: ${error.message}`);
             console.error(`[${currentTime}] Error stack: ${error.stack}`);
             console.error(`[${currentTime}] Error code: ${error.code}`);
         });
     
-        this.snifferProcess.on("exit", code => {
+        this.pid.on("exit", code => {
             const exitTime = Utils.currentTime();
     
             if (code === 0) {
@@ -88,14 +88,16 @@ class Sniffer {
         });
     }
 
-    // Function to stop
-    stop(signal = "SIGTERM") {
-        if (this.snifferProcess && !this.snifferProcess.killed) {
-            const currentTime = Utils.currentTime();
-            console.log(`[${currentTime}] Stopping tshark process with PID: ${this.snifferProcess.pid}`);
-            this.snifferProcess.kill(signal);
 
-            this.snifferProcess.on("exit", (code, signal) => {
+    stop(signal = "SIGTERM") {
+
+        // Check if the process is still active
+        if (this.pid && !this.pid.killed) {
+            const currentTime = Utils.currentTime();
+            console.log(`[${currentTime}] Stopping tshark process with PID: ${this.pid.pid}`);
+            this.pid.kill(signal);
+
+            this.pid.on("exit", (code, signal) => {
                 const exitTime = Utils.currentTime();
 
                 if (signal) {
@@ -240,6 +242,7 @@ class Experiment {
 
                 // File for logging events
                 logBotFile = path.join(this.outputDir, `log_bot_complete-${number + 1}.csv`);   
+
                 
                 // File for logging packets
                 logNetFile = path.join(this.outputDir, `log_net_complete-${number + 1}.pcap`);
@@ -258,8 +261,9 @@ class Experiment {
                 const originTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `origin ${originTime} ${0}\n`);
                 
+
                 // Start the sniffer
-                sniffer = new Sniffer(logNetFile);
+                sniffer = new Sniffer(logNetFile, config.sniffer.bin, config.sniffer.net, config.sniffer.max);
                 sniffer.start();
                 const snifferStartTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `sniffer-on ${snifferStartTime} ${snifferStartTime - originTime}\n`);

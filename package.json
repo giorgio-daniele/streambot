@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "js-adb": "^1.0.5",
+    "js-yaml": "^4.1.0",
     "puppeteer": "^23.2.1",
     "puppeteer-har": "^1.1.2"
   }

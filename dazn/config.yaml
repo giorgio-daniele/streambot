@@ -21,7 +21,7 @@ channels:
 # Configuration for the sniffer
 sniffer:
   bin: "/usr/bin/tshark"
-  net: "enp1s0"
+  net: "wlp1s0"
   max: "500"
 
 # Configuration for sign-up
