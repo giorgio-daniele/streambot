@@ -243,7 +243,6 @@ class Experiment {
                 // File for logging events
                 logBotFile = path.join(this.outputDir, `log_bot_complete-${number + 1}.csv`);   
 
-                
                 // File for logging packets
                 logNetFile = path.join(this.outputDir, `log_net_complete-${number + 1}.pcap`);
 
@@ -261,7 +260,6 @@ class Experiment {
                 const originTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `origin ${originTime} ${0}\n`);
                 
-
                 // Start the sniffer
                 sniffer = new Sniffer(logNetFile, config.sniffer.bin, config.sniffer.net, config.sniffer.max);
                 sniffer.start();
@@ -273,12 +271,12 @@ class Experiment {
                 await browserManager.launch();
                 const browserStartTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-on ${browserStartTime} ${browserStartTime - originTime}\n`);
-                await Utils.awaiting(config.load);
+                await Utils.awaiting(config.timings.load);
                 
                 // Start the HTTP tracing
                 const harLogger = await browserManager.startHarLogging(logHarFile);
                 await browserManager.page.goto(config.homepage);
-                await Utils.awaiting(config.load);
+                await Utils.awaiting(config.timings.load);
 
                 for (const channel of channels) {
                     // Reach the homepage
@@ -294,7 +292,7 @@ class Experiment {
                     const channelStartTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-on ${channelStartTime} ${channelStartTime - originTime}\n`);
 
-                    await Utils.awaiting(config.play);
+                    await Utils.awaiting(config.timings.play);
 
                     const channelStopTime = Utils.currentUnix();
                     fs.appendFileSync(logBotFile, `${channel.name}-off ${channelStopTime} ${channelStopTime - originTime}\n`);
@@ -306,7 +304,7 @@ class Experiment {
                 
                     // Exit the current channel and get the next
                     await browserManager.page.goto(config.homepage);
-                    await Utils.awaiting(config.load);
+                    await Utils.awaiting(config.timings.load);
                 }
                 
                 // Stop the HTTP tracing
@@ -316,7 +314,7 @@ class Experiment {
                 const browserStopTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-off ${browserStopTime} ${browserStopTime - originTime}\n`);
 
-                await Utils.awaiting(config.load * 3);
+                await Utils.awaiting(config.timings.load * 3);
                 // Stop the sniffer
                 sniffer.stop();
                 const snifferStopTime = Utils.currentUnix();
