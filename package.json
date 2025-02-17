@@ -1,18 +1,16 @@
 {
-  "name": "streambot",
+  "name": "amazon",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "register.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "js-adb": "^1.0.5",
     "js-yaml": "^4.1.0",
-    "puppeteer": "^23.2.1",
+    "puppeteer": "^24.2.1",
     "puppeteer-har": "^1.1.2"
   }
 }

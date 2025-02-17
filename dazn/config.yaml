@@ -7,7 +7,7 @@ enableRebufferingTracing: 0
 # Configuration for timings
 timings:
   load: 5000  # milliseconds (5 seconds)
-  play: 72000 # milliseconds (12 minutes)
+  play: 7 # milliseconds (12 minutes)
 
 # URL of the Content Provider
 homepage: "https://www.dazn.com/it-IT/home"
@@ -20,12 +20,12 @@ channels:
 
 # Configuration for the sniffer
 sniffer:
-  bin: "/usr/bin/tshark"
-  net: "wlp1s0"
+  bin: "/Applications/Wireshark.app/Contents/MacOS/tshark"
+  net: "en0"
   max: "500"
 
 # Configuration for sign-up
 login:
   url: "https://www.dazn.com/it-IT/signin"
-  username: ""
+  username: "giorgiodaniele15@gmail.com"
   password: ""

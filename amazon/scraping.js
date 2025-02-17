@@ -123,8 +123,9 @@ class BrowserManager {
     // Open a new instance of a browser
     async launch() {
         this.browser = await puppeteer.launch({
-            headless      : false,
-            userDataDir   : "./user_data",
+            executablePath: "/usr/bin/google-chrome",
+            headless       : false,
+            userDataDir    : "./user_data",
             defaultViewport: null,
         });
 
@@ -135,6 +136,10 @@ class BrowserManager {
             await this.browser.close();
             throw new Error("No page available in the browser");
         }
+
+        // Print the browser version to check if it's Chrome or Chromium
+        const browserVersion = await this.browser.version();
+        console.log(`Using Browser: ${browserVersion}`);
     }
 
     // Close existing instance of a browser
@@ -279,9 +284,54 @@ class Experiment {
                 await Utils.awaiting(config.timings.load);
 
                 for (const channel of channels) {
-                    // Reach the homepage
-                    await browserManager.page.goto(channel.link);
+
+                    if(channel.type == "link") {
+                        // Reach the homepage
+                        await browserManager.page.goto(channel.link);
+                    }
+
+                    if (channel.type === "button") {
+                        // Debug: Indicate that the scrolling action is about to start
+                        console.log("Scrolling the page down...");
                     
+                        // Scroll the page down first
+                        await browserManager.page.evaluate(() => {
+                            window.scrollBy(0, window.innerHeight); // Scroll down by one viewport height
+                        });
+                    
+                        // Optional: Wait a bit for the scroll to finish (adjust as needed)
+                        console.log("Waiting for scroll to complete...");
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                        // Ensure you pass the correct selector here, not the click statement
+                        const selector = channel.link; // This should be the string selector, not an action like `await page.click()`
+                    
+                        // Debug: Indicate that waiting for the selector will start
+                        console.log(`Waiting for the selector: ${selector}`);
+                        // Wait for the selector to be available
+                        await browserManager.page.waitForSelector(selector);
+                    
+                        // Debug: Indicate that the element is being scrolled into view
+                        console.log(`Scrolling the element with selector ${selector} into view...`);
+                        // Scroll the element into view
+                        await browserManager.page.evaluate((selector) => {
+                            document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }, selector);
+                    
+                        // Optional: Small delay to allow smooth scrolling effect
+                        console.log("Waiting for smooth scrolling...");
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                        // Debug: Indicate that the click action is about to occur
+                        console.log(`Clicking the button with selector ${selector}...`);
+                        // Click the button
+                        await browserManager.page.click(selector);
+                    
+                        // Debug: Action completed
+                        console.log("Button clicked successfully!");
+                    }
+                    
+                                         
                     // Start (if availble) the playback tracing)
                     let id;
                     if (config.enableRebufferingTracing) {

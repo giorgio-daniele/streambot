@@ -1,26 +1,26 @@
 # Configure how many times the channels list is reproduced
-repetitions: 1
+repetitions: 25
 
 # Enable rebuffering logging (default is 0)
 enableRebufferingTracing: 0
 
 # Configuration for timings
 timings:
-  load: 5000  # milliseconds (5 seconds)
-  play: 72000 # milliseconds (12 minutes)
+  load: 5000   # milliseconds (5 seconds)
+  play: 300000 # milliseconds (5 minutes)
 
 # URL of the Content Provider
-homepage: "https://www.primevideo.com/region/eu/livetv"
+homepage: "https://www.primevideo.com/channel/d646dc20-1074-4f8c-87ec-e8cbf0cd85ec?jic=16%7CCgNhbGwSA2FsbA%3D%3D"
 
 # Channels
 channels:
-  - type:      "url"
-    link:      "https://www.primevideo.com/region/eu/detail/0FT3UFJI3UWL3FR9STND0K0SUG/ref=atv_hm_fcv_prime_hd_live_play_t1ACAAAAAA0wh0?autoplay=1&t=2147483647&type=live"
-    name:      "eurosport1"
+  - type: "button"
+    link: "[data-card-title='Eurosport 1 HD']"
+    name: "eurosport1"
+  - type: "button"
+    link: "[data-card-title='Eurosport 2 HD']"
+    name: "eurosport2"
 
-  # - type:      "url"
-  #   link:      "https://www.primevideo.com/region/eu/detail/0FT3UFJI3UWL3FR9STND0K0SUG/ref=atv_hm_fcv_prime_hd_live_play_t1ACAAAAAA0wh0?autoplay=1&t=2147483647&type=live"
-  #   name:      "eurosport2"
 
 # Configuration for the sniffer
 sniffer:
@@ -31,5 +31,5 @@ sniffer:
 # Configuration for sign-up
 login:
   url: "https://www.primevideo.com/auth-redirect"
-  username: ""
+  username: "balenablu@myyahoo.com"
   password: ""

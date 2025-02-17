@@ -11,6 +11,7 @@ const wait = (seconds) => new Promise((resolve) => setTimeout(resolve, seconds *
 const registerUser = async () => {
     console.log("\nLaunching Puppeteer...");
     const browser = await puppeteer.launch({
+        executablePath: "/usr/bin/google-chrome",
         headless: false,
         userDataDir
     });
@@ -51,7 +52,7 @@ const registerUser = async () => {
     await wait(5);
 
     console.log("Waiting for login confirmation...");
-    await wait(50);
+    await wait(10);
 
     console.log("Closing browser...");
     await browser.close();
