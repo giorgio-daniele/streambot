@@ -1,66 +1,74 @@
 const puppeteer = require("puppeteer");
 const path = require("path");
-const fs = require("fs");
+const fs   = require("fs");
 const yaml = require("js-yaml");
+const { time } = require("console");
 
 const userDataDir = path.join(__dirname, "user_data");
 
-const doesUserDataDirExist = (dir) => fs.existsSync(dir);
-const wait = (seconds) => new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+const doesUserDataDirExist = (dir) => { 
+    return fs.existsSync(dir); 
+};
+
+const wait = (seconds) => { 
+    return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); 
+};
 
 const registerUser = async () => {
-    console.log("\nLaunching Puppeteer...");
+
+    const timeout = 5;
+
+    /* Load the configuration */
+    let config;
+
+    try {
+        config = yaml.load(fs.readFileSync("config.yaml", "utf8"));
+    } catch (error) {
+        console.error("Error:", error.message);
+        return;
+    }
+
+    
+    /* Launch the browser with the configuration */
+
     const browser = await puppeteer.launch({
-        executablePath: "/usr/bin/google-chrome",
-        headless: false,
+        executablePath: config.agent,
+        headless:       false,
         userDataDir
     });
 
     const [page] = await browser.pages();
 
-    let config;
+    /* Get the login page */
 
-    try {
-        console.log("Loading config.yaml...");
-        config = yaml.load(fs.readFileSync("config.yaml", "utf8"));
-    } catch (error) {
-        console.error("Error loading config.yaml:", error.message);
-        await browser.close();
-        return;
-    }
-
-    console.log("Navigating to login page...");
     await page.goto(config.login.url);
-    await wait(5);
+    await wait(timeout);
 
-    console.log("Entering email...");
+    /* Perform the login in the login page */
+
     await page.waitForSelector("#ap_email");
     await page.type("#ap_email", config.login.username);
-    
-    console.log("Clicking 'Continue' button...");
+
     await page.waitForSelector("#continue");
     await page.click("#continue");
-    await wait(5);
+    await wait(timeout);
 
-    console.log("Entering password...");
     await page.waitForSelector("#ap_password");
     await page.type("#ap_password", config.login.password);
     
-    console.log("Clicking 'Sign In' button...");
     await page.waitForSelector("#signInSubmit");
     await page.click("#signInSubmit");
-    await wait(5);
+    await wait(timeout);
 
-    console.log("Waiting for login confirmation...");
-    await wait(10);
+    /* Close the procedure */
 
-    console.log("Closing browser...");
     await browser.close();
     console.log("Login process completed.");
 };
 
 const main = async () => {
-    console.log("\nChecking user session...");
+
+    /* Run the check if the user data already exists */
 
     if (doesUserDataDirExist(userDataDir)) {
         console.log("Already logged in.");

@@ -9,66 +9,69 @@ const doesUserDataDirExist = (dir) => fs.existsSync(dir);
 const wait                 = (seconds) => new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 
 const registerUser = async () => {
-    console.log("\nLaunching Puppeteer...");
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        userDataDir
-    });
+    const timeout = 5;
 
+    /* Load the configuration */
     let config;
 
     try {
-        console.log("Loading config.yaml...");
         config = yaml.load(fs.readFileSync("config.yaml", "utf8"));
     } catch (error) {
-        console.error("Error loading config.yaml:", error.message);
-        await browser.close();
+        console.error("Error:", error.message);
         return;
     }
 
-    const [page] = await browser.pages();
-    console.log("Navigating to login page...");
+    /* Launch the browser with the configuration */
+
+    const browser = await puppeteer.launch({
+        executablePath: config.agent,
+        headless:       false,
+        userDataDir
+    });
+
+
+    /* Get the login page */
+
     await page.goto(config.login.url);
+    await wait(timeout);
 
-    // Accept cookies
-    console.log("Checking for cookie banner...");
+    /* Perform the login in the login page */
+
     const banner = await page.waitForSelector("#onetrust-accept-btn-handler");
-    await wait(2);
-    await banner.click();
-    console.log("Cookies accepted.");
-    await wait(2);
+    await wait(timeout);
 
-    // Insert email
-    console.log("Entering email...");
+    await banner.click();
+    await wait(timeout);
+
     await page.waitForSelector("#email");
     await page.type("#email", config.login.username);
-    await wait(2);
+    await wait(timeout);
 
-    // Insert password
-    console.log("Entering password...");
     await page.waitForSelector("#password");
     await page.type("#password", config.login.password);
-    await wait(2);
+    await wait(timeout);
 
-    // Submit form
-    console.log("Submitting login form...");
     await page.waitForSelector("button[type=submit]");
     await page.click("button[type=submit]");
-    await wait(5);
+    await wait(timeout);
 
-    console.log("Successfully logged in.");
+    /* Close the procedure */
+
     await browser.close();
+    console.log("Login process completed.");
 };
 
 const main = async () => {
-    console.log("\nChecking user session...");
+
+    /* Run the check if the user data already exists */
 
     if (doesUserDataDirExist(userDataDir)) {
         console.log("Already logged in.");
         console.log("Remove 'user_data' to generate a new profile.");
     } else {
         await registerUser();
+        console.log("You are now logged in!");
     }
 };
 

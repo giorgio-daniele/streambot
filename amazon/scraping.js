@@ -16,7 +16,7 @@ class Utils {
     }
 
     static awaiting(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise(resolve => setTimeout(resolve, ms * 1000));
     }
 
     static makeOutputDir() {
@@ -121,9 +121,9 @@ class BrowserManager {
     }
 
     // Open a new instance of a browser
-    async launch() {
+    async launch(config) {
         this.browser = await puppeteer.launch({
-            executablePath: "/usr/bin/google-chrome",
+            executablePath: config.agent,
             headless       : false,
             userDataDir    : "./user_data",
             defaultViewport: null,
@@ -272,7 +272,7 @@ class Experiment {
                 fs.appendFileSync(logBotFile, `sniffer-on ${snifferStartTime} ${snifferStartTime - originTime}\n`);
 
                 // Start the browser
-                browserManager = new BrowserManager();
+                browserManager = new BrowserManager(config);
                 await browserManager.launch();
                 const browserStartTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `browser-on ${browserStartTime} ${browserStartTime - originTime}\n`);
@@ -291,44 +291,20 @@ class Experiment {
                     }
 
                     if (channel.type === "button") {
-                        // Debug: Indicate that the scrolling action is about to start
-                        console.log("Scrolling the page down...");
-                    
-                        // Scroll the page down first
+                        
                         await browserManager.page.evaluate(() => {
-                            window.scrollBy(0, window.innerHeight); // Scroll down by one viewport height
+                            window.scrollBy(0, window.innerHeight);
                         });
-                    
-                        // Optional: Wait a bit for the scroll to finish (adjust as needed)
-                        console.log("Waiting for scroll to complete...");
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                        // Ensure you pass the correct selector here, not the click statement
-                        const selector = channel.link; // This should be the string selector, not an action like `await page.click()`
-                    
-                        // Debug: Indicate that waiting for the selector will start
-                        console.log(`Waiting for the selector: ${selector}`);
-                        // Wait for the selector to be available
+                        await Utils.awaiting(config.timings.load);
+            
+                        const selector = channel.link;
                         await browserManager.page.waitForSelector(selector);
-                    
-                        // Debug: Indicate that the element is being scrolled into view
-                        console.log(`Scrolling the element with selector ${selector} into view...`);
-                        // Scroll the element into view
                         await browserManager.page.evaluate((selector) => {
                             document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "center" });
                         }, selector);
                     
-                        // Optional: Small delay to allow smooth scrolling effect
-                        console.log("Waiting for smooth scrolling...");
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                        // Debug: Indicate that the click action is about to occur
-                        console.log(`Clicking the button with selector ${selector}...`);
-                        // Click the button
+                        await Utils.awaiting(config.timings.load);
                         await browserManager.page.click(selector);
-                    
-                        // Debug: Action completed
-                        console.log("Button clicked successfully!");
                     }
                     
                                          
