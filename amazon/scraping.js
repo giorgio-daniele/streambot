@@ -115,7 +115,8 @@ class Sniffer {
 class BrowserManager {
 
     // Constructor
-    constructor() {
+    constructor(config) {
+        this.agent   = config.agent
         this.browser = null;
         this.page    = null;
     }
@@ -123,7 +124,7 @@ class BrowserManager {
     // Open a new instance of a browser
     async launch(config) {
         this.browser = await puppeteer.launch({
-            executablePath: config.agent,
+            executablePath:  this.agent,
             headless       : false,
             userDataDir    : "./user_data",
             defaultViewport: null,

@@ -4,7 +4,6 @@ import time
 PAUSE = 5
 LIMITS = [1500, 3000, 4500, 6000, 7500, 50000]
 
-
 def set_limit(limit: int):
     bin = "/home/giorgiodaniele/Desktop/streambot/node_modules/.bin/throttle"
     cmd = f"{bin} --up {limit} --down {limit}"
