@@ -116,13 +116,13 @@ class BrowserManager {
 
     // Constructor
     constructor(config) {
-        this.agent   = config.agent
-        this.browser = null;
-        this.page    = null;
+        this.agent    = config.agent
+        this.browser  = null;
+        this.page     = null;
     }
 
     // Open a new instance of a browser
-    async launch(config) {
+    async launch() {
         this.browser = await puppeteer.launch({
             executablePath:  this.agent,
             headless       : false,
@@ -150,59 +150,91 @@ class BrowserManager {
         }
     }
 
-    // Trace rebuffing
-    async monitorVideoPlayback(file) {
-        const videoContainer = await this.page.waitForSelector('div.player-ui[data-test-id="PLAYER_UI"]', {
-            timeout: 20000
-        });
-
-        if (!videoContainer) {
-            console.log("Debug: Video player container not found!");
-            return;
-        }
-
-        // Get the video element
-        const video = await this.page.waitForSelector('video', {
-            timeout: 5000 
-        });
-
-        if (!video) {
-            console.log("Debug: Video element not found!");
-            return;
-        }
-
-        /* Monitor the status each second */
-        const intervalId = setInterval(async () => {
-            // Check the readyState of the video
-            const state = await this.page.evaluate((video) => video.readyState, video);
-
-            // Get the current timestamp
-            const stamp = Utils.currentUnix();
-
-            // Determine the playback status
-            let status = 'dead'; 
-
-            if (state === 4) {
-                status = 'live';
-            }
-
-            // Write the status to a file
-            fs.appendFileSync(file, `${stamp} ${status}\n`);
-
-        }, 1000);
-
-        // Return the interval ID to be cleared later
-        return intervalId;
+    // Get the channel with a link
+    async visitChannelLink(channel, config) {
+        await this.page.goto(channel.link);
     }
 
-    // Trace HTTP requests/responses
-    async startHarLogging(outputPath) {
+    // Navigate with a buttton
+    async visitChannelButton(channel, config) {
+
+        await this.page.evaluate(() => {
+            window.scrollBy(0, window.innerHeight);
+        });
+        await Utils.awaiting(config.timings.load);
+
+        const selector = channel.link;
+        await this.page.waitForSelector(selector);
+        await this.page.evaluate((selector) => {
+            document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, selector);
+    
+        await Utils.awaiting(config.timings.load);
+        await this.page.click(selector);
+    }
+
+    // Navigate with a link
+    async navigateLink(link) {
+        await this.page.goto(link);
+    }
+
+    // Trace rebuffing
+    // async monitorVideoPlayback(file) {
+    //     const videoContainer = await this.page.waitForSelector('div.player-ui[data-test-id="PLAYER_UI"]', {
+    //         timeout: 20000
+    //     });
+
+    //     if (!videoContainer) {
+    //         console.log("Debug: Video player container not found!");
+    //         return;
+    //     }
+
+    //     // Get the video element
+    //     const video = await this.page.waitForSelector('video', {
+    //         timeout: 5000 
+    //     });
+
+    //     if (!video) {
+    //         console.log("Debug: Video element not found!");
+    //         return;
+    //     }
+
+    //     /* Monitor the status each second */
+    //     const intervalId = setInterval(async () => {
+    //         // Check the readyState of the video
+    //         const state = await this.page.evaluate((video) => video.readyState, video);
+
+    //         // Get the current timestamp
+    //         const stamp = Utils.currentUnix();
+
+    //         // Determine the playback status
+    //         let status = 'dead'; 
+
+    //         if (state === 4) {
+    //             status = 'live';
+    //         }
+
+    //         // Write the status to a file
+    //         fs.appendFileSync(file, `${stamp} ${status}\n`);
+
+    //     }, 1000);
+
+    //     // Return the interval ID to be cleared later
+    //     return intervalId;
+    // }
+
+    async startL7Tracing(outputPath) {
+        const har = new puppeteerHar(this.page);
+        await har.start({ path: outputPath });
+        return har;
+    }
+
+    async stopL7Tracing(outputPath) {
         const har = new puppeteerHar(this.page);
         await har.start({ path: outputPath });
         return har;
     }
 }
-
 
 class Experiment {
     constructor() {
@@ -214,9 +246,7 @@ class Experiment {
         // Define variable for runtime
         let config;
         let sniffer;
-        let browserManager;
-        let repetitions;
-        let channels;
+        let browser;
 
         // Define
         let logNetFile;
@@ -225,132 +255,104 @@ class Experiment {
         let logRebFile;
 
         try {
-            // Read the YAML file
-            const file = fs.readFileSync('config.yaml', 'utf8');
-        
-            // Parse YAML to JavaScript object
-            config = yaml.load(file);
-
+            config = yaml.load(fs.readFileSync('config.yaml', 'utf8'));
         } catch (error) {
             console.error(`Error loading config.yaml experiment:`, error.message);
         }
 
-        // Get the number of repetitions
-        // and the list of all channels
-        repetitions = config.repetitions;
-        channels    = config.channels;
+        for (let n = 0; n < config.repetitions; n++) {
 
-        for (let number = 0; number < repetitions; number++) {
-            const currentTime = Utils.currentTime();
-            console.log(`[${currentTime}] Running experiment ${number + 1}`);
+            // Start of the experiment
+            console.log(`[${Utils.currentTime()}] Running experiment ${n + 1}`);
 
             try {
 
-                // File for logging events
-                logBotFile = path.join(this.outputDir, `log_bot_complete-${number + 1}.csv`);   
-
-                // File for logging packets
-                logNetFile = path.join(this.outputDir, `log_net_complete-${number + 1}.pcap`);
-
-                // File for logging HTTP requests and responses
-                logHarFile = path.join(this.outputDir, `log_har_complete-${number + 1}.har`);
+                // Define the output files
+                logBotFile = path.join(this.outputDir, `log_bot_complete-${n + 1}.csv`);  
+                logNetFile = path.join(this.outputDir, `log_net_complete-${n + 1}.pcap`);
+                logHarFile = path.join(this.outputDir, `log_har_complete-${n + 1}.har`);
                 
-                // File for logging player status
-                if (config.enableRebufferingTracing) {
-                    logRebFile = path.join(this.outputDir, `log_reb_complete-${number + 1}.txt`);
-                }
-
+                // // File for logging player status
+                // if (config.enableRebufferingTracing) {
+                //     logRebFile = path.join(this.outputDir, `log_reb_complete-${n + 1}.txt`);
+                // }
+                
+                /*************************************** Define the oigin ********************************************************/
                 fs.appendFileSync(logBotFile, `event abs rel\n`);
-
-                // Define the origin of the experiment
                 const originTime = Utils.currentUnix();
                 fs.appendFileSync(logBotFile, `origin ${originTime} ${0}\n`);
                 
-                // Start the sniffer
+                /*************************************** Start the sniffer *******************************************************/
                 sniffer = new Sniffer(logNetFile, config.sniffer.bin, config.sniffer.net, config.sniffer.max);
                 sniffer.start();
-                const snifferStartTime = Utils.currentUnix();
-                fs.appendFileSync(logBotFile, `sniffer-on ${snifferStartTime} ${snifferStartTime - originTime}\n`);
+                const snifferTs = Utils.currentUnix();
+                fs.appendFileSync(logBotFile, `sniffer-on ${snifferTs} ${snifferTs - originTime}\n`);
 
-                // Start the browser
-                browserManager = new BrowserManager(config);
-                await browserManager.launch();
-                const browserStartTime = Utils.currentUnix();
-                fs.appendFileSync(logBotFile, `browser-on ${browserStartTime} ${browserStartTime - originTime}\n`);
+                /*************************************** Start the browser *******************************************************/
+                browser = new BrowserManager(config);
+                await browser.launch();
+                const browserTs = Utils.currentUnix();
+                fs.appendFileSync(logBotFile, `browser-on ${browserTs} ${browserTs - originTime}\n`);
                 await Utils.awaiting(config.timings.load);
                 
-                // Start the HTTP tracing
-                const harLogger = await browserManager.startHarLogging(logHarFile);
-                await browserManager.page.goto(config.homepage);
+                /*************************************** Start L7 tracing ********************************************************/
+                const harLogger = await browser.startL7Tracing(logHarFile);
+                await browser.page.goto(config.homepage);
                 await Utils.awaiting(config.timings.load);
 
-                for (const channel of channels) {
+                /*************************************** Loop over channels ******************************************************/
+                for (const channel of config.channels) {
 
-                    if(channel.type == "link") {
-                        // Reach the homepage
-                        await browserManager.page.goto(channel.link);
+                    if(channel.type == "url") {
+                        await browser.visitChannelLink(channel, config)
                     }
-
+                    
                     if (channel.type === "button") {
-                        
-                        await browserManager.page.evaluate(() => {
-                            window.scrollBy(0, window.innerHeight);
-                        });
-                        await Utils.awaiting(config.timings.load);
-            
-                        const selector = channel.link;
-                        await browserManager.page.waitForSelector(selector);
-                        await browserManager.page.evaluate((selector) => {
-                            document.querySelector(selector)?.scrollIntoView({ behavior: "smooth", block: "center" });
-                        }, selector);
-                    
-                        await Utils.awaiting(config.timings.load);
-                        await browserManager.page.click(selector);
+                        await browser.visitChannelButton(channel, config)
                     }
+                                      
+                    // // Start (if availble) the playback tracing)
+                    // let id;
+                    // if (config.enableRebufferingTracing) {
+                    //     id = await browserManager.monitorVideoPlayback(logRebFile); 
+                    // }
                     
-                                         
-                    // Start (if availble) the playback tracing)
-                    let id;
-                    if (config.enableRebufferingTracing) {
-                        id = await browserManager.monitorVideoPlayback(logRebFile); 
-                    }
-                
-                    // Playback
-                    const channelStartTime = Utils.currentUnix();
-                    fs.appendFileSync(logBotFile, `${channel.name}-on ${channelStartTime} ${channelStartTime - originTime}\n`);
+                    /*************************************** Watch the channel ****************************************************/
+                    const channelTs = Utils.currentUnix();
+                    fs.appendFileSync(logBotFile, `${channel.name}-on ${channelTs} ${channelTs - originTime}\n`);
 
                     await Utils.awaiting(config.timings.play);
 
-                    const channelStopTime = Utils.currentUnix();
-                    fs.appendFileSync(logBotFile, `${channel.name}-off ${channelStopTime} ${channelStopTime - originTime}\n`);
+                    const channelTe = Utils.currentUnix();
+                    fs.appendFileSync(logBotFile, `${channel.name}-off ${channelTe} ${channelTe - originTime}\n`);
                     
-                    // Stop (if availble) the playback tracing)
-                    if (config.enableRebufferingTracing) {
-                        clearInterval(id);
-                    }
+                    // // Stop (if availble) the playback tracing)
+                    // if (config.enableRebufferingTracing) {
+                    //     clearInterval(id);
+                    // }
                 
-                    // Exit the current channel and get the next
-                    await browserManager.page.goto(config.homepage);
+                    await browser.navigateLink(config.homepage);
                     await Utils.awaiting(config.timings.load);
                 }
                 
-                // Stop the HTTP tracing
+                /*************************************** Stop L7 tracing ********************************************************/
                 await harLogger.stop();
-                // Stop the browser
-                await browserManager.close();
-                const browserStopTime = Utils.currentUnix();
-                fs.appendFileSync(logBotFile, `browser-off ${browserStopTime} ${browserStopTime - originTime}\n`);
 
+                /*************************************** Stop the browser ********************************************************/
+                await browser.close();
+                const browserTe = Utils.currentUnix();
+                fs.appendFileSync(logBotFile, `browser-off ${browserTe} ${browserTe - originTime}\n`);
+
+                /*************************************** Stop the sniffer ********************************************************/
                 await Utils.awaiting(config.timings.load * 3);
-                // Stop the sniffer
                 sniffer.stop();
-                const snifferStopTime = Utils.currentUnix();
-                fs.appendFileSync(logBotFile, `sniffer-off ${snifferStopTime} ${snifferStopTime - originTime}\n`);
+                const snifferTe = Utils.currentUnix();
+                fs.appendFileSync(logBotFile, `sniffer-off ${snifferTe} ${snifferTe - originTime}\n`);
 
             } catch (error) {
-                console.error(`Error during experiment ${number + 1}:`, error.message);
+                console.error(`Error during experiment ${n + 1}:`, error.message);
 
-                if (browserManager) await browserManager.close();
+                if (browser) await browser.close();
                 Utils.cleanFiles(logNetFile, logBotFile, logHarFile, logRebFile);
                 if (sniffer) sniffer.stop();
             }
@@ -358,6 +360,7 @@ class Experiment {
     }
 }
 
+/* Main function */
 (async () => {
     Utils.checkCookies();
     const experiment = new Experiment();

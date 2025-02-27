@@ -1,5 +1,5 @@
 # streambot
-A simple tool for automating Layer-2 and Layer-7 tracing on Content Provider websites (currently, Amazon Prime and DAZN are supported). It allows you to loop over a list of URL channels offered by the Content Provider, recording packet-level and HTTP-level data through Wireshark and HAR traces.
+A simple tool for automating Layer-2 and Layer-7 tracing on content provider websites (currently, Amazon Prime and DAZN are supported). It allows you to loop over a list of URL channels offered by the Content Provider, recording packet-level and HTTP-level data through Wireshark and HAR traces.
 
 ## Features
 - Automates tracing for Content Providers like Amazon Prime and DAZN
@@ -31,17 +31,17 @@ You can configure the bot via the `config.yaml` file. The following parameters a
   ```
 
 ### 2. load
-- **Description**: Time in milliseconds between actions (e.g., clicking).
+- **Description**: Time in seconds between actions (e.g., clicking).
 - Example:
   ```yaml
-  load: 200
+  load: 2
   ```
 
 ### 3. play
-- **Description**: Time in milliseconds to watch a URL in the channel list.
+- **Description**: Time in seconds to watch a URL in the channel list.
 - Example:
   ```yaml
-  play: 5000
+  play: 10
   ```
 
 ### 4. homepage
@@ -81,3 +81,5 @@ You can configure the bot via the `config.yaml` file. The following parameters a
     username: "your-email@example.com"
     password: "your-password"
   ```
+
+

@@ -5,12 +5,12 @@ repetitions: 1
 enableRebufferingTracing: 0
 
 # Define the browser path
-agent: /usr/bin/google-chrome
+agent: "/usr/bin/google-chrome-stable"
 
 # Configuration for timings
 timings:
-  load: 5000  # milliseconds (milliseconds)
-  play: 7     # milliseconds (milliseconds)
+  load: 5  # seconds
+  play: 10 # seconds
 
 # URL of the Content Provider
 homepage: "https://www.dazn.com/it-IT/home"
@@ -18,13 +18,13 @@ homepage: "https://www.dazn.com/it-IT/home"
 # Channels
 channels:
   - type:      "url"
-    link:      "https://www.dazn.com/it-IT/competition/Competition:1r097lpxe0xn03ihb7wi98kao/f0fxplpta8y6r0j482bg311u1/1daica1elq2701s7zajjchy47s"
+    link:      "https://www.dazn.com/it-IT/home/f0fxplpta8y6r0j482bg311u1/1daica1elq2701s7zajjchy47s"
     name:      "radio-tv-serie-a"
 
 # Configuration for the sniffer
 sniffer:
-  bin: "/Applications/Wireshark.app/Contents/MacOS/tshark"
-  net: "en0"
+  bin: "/usr/bin/tshark"
+  net: "wlo1"
   max: "500"
 
 # Configuration for sign-up

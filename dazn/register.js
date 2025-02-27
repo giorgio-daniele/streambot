@@ -30,6 +30,7 @@ const registerUser = async () => {
         userDataDir
     });
 
+    const [page] = await browser.pages();
 
     /* Get the login page */
 
