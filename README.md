@@ -13,7 +13,7 @@ A simple tool for automating Layer-2 and Layer-7 tracing on content provider web
      - `scraping.js`: Automates the tracing process
      - `register.js`: Handles the sign-in process
      
-   - Before running `scraping.js`, run `register.js`** to save your credentials and cookies for subsequent logins. This will generate a folder called `user_data`.
+   - Before running `scraping.js`, run `register.js` to save your credentials and cookies for subsequent logins. This will generate a folder called `user_data`.
 
 2. **Run scraping.js:**
    - Once you’ve completed the sign-in process, you can run `scraping.js` to start the tracing of the channels.
