@@ -236,6 +236,7 @@ class BrowserManager {
     }
 }
 
+
 class Experiment {
     constructor() {
         this.outputDir  = Utils.makeOutputDir();

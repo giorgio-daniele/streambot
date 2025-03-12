@@ -1,5 +1,5 @@
 const puppeteer = require("puppeteer");
-const path = require("path");
+const path      = require("path");
 const fs   = require("fs");
 const yaml = require("js-yaml");
 const { time } = require("console");
